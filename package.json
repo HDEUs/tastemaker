@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "grain": "eslint src/ --no-warn-ignored",
+    "test:unit": "vitest run",
+    "test:ci": "tsc --noEmit && pnpm lint && pnpm grain && pnpm build && pnpm test:unit",
     "prepare": "husky || true"
   },
   "dependencies": {
