@@ -10,24 +10,24 @@ eerste scaffold — TODO-markers staan op die plekken.
 
 ## What
 
-Tastemaker — nieuw HDEUs-project, net gestart: de repo bevat het
-conventies-basispakket, nog geen productcode.
-<!-- TODO bij scaffold: één alinea — wat is het product, welke stack
-(framework, DB, hosting), waar deployt het. Beoogde basis conform het
-conventies-pakket: Next.js + TypeScript met src/-structuur en pnpm. -->
+Tastemaker — HDEUs-project in opbouw. Technische basis staat: Next.js 16
+(App Router, `src/`-structuur), TypeScript strict, pnpm. Productcode volgt
+via het PRD (Telegram-capture + Claude-analyse; werktitel "Tastebank").
+<!-- TODO bij de eerste feature-run: productomschrijving definitief maken
+(wat, DB, hosting/deploy-doel) en de naamkeuze vastleggen. -->
 
 ## Commands
 
-Nog geen projectcode; dit blok wordt definitief bij de scaffold. Beoogde
-scripts (zie lint/SETUP.md in HDEUs/claudeconventions): `pnpm dev`,
-`pnpm build`, `pnpm lint`, `pnpm grain` (slop-pass over src/),
-`npx tsc --noEmit`. Regel die altijd geldt: **build vóór elke commit**.
+- `pnpm dev` — dev-server
+- `pnpm build` — productie-build; regel die altijd geldt: **build vóór elke commit**
+- `pnpm lint` — ESLint over het hele project
+- `pnpm grain` — slop-pass over `src/` (blokkerende AI-slop-gate)
+- `npx tsc --noEmit` — typecheck
 
-Let op bij het scaffolden: `create-next-app` weigert een niet-lege map —
-scaffold in een tijdelijke map en neem de bestanden over, of verplaats
-`eslint.config.mjs`/`tsconfig.json` tijdelijk. Draai daarna de npm-stappen
-uit lint/SETUP.md (deps installeren, `husky init` + pre-commit terugzetten,
-verify-stappen).
+De husky pre-commit draait `gitleaks → tsc → lint → grain → build` en is
+geverifieerd: de gate vuurt echt (zie .claude/rules/guardrails.md). Lokale
+gitleaks-binary is optioneel (graceful skip); de gitleaks-job in CI
+(.github/workflows/ci.yml) is de niet-omzeilbare backstop.
 
 ## Owner
 
