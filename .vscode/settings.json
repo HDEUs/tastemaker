@@ -1,0 +1,26 @@
+{
+  // source: HDEUs/fittracker .vscode/settings.json, exported 2026-07 (verbatim)
+  // Plaats als .vscode/settings.json; voeg .vscode/extensions.json toe met
+  // { "recommendations": ["dbaeumer.vscode-eslint"] }.
+  //
+  // Churn-prevention: without a pinned formatter, the editor's BUILT-IN
+  // TypeScript formatter runs on save and collapses multi-line union types,
+  // producing recurring anti-formatter diffs. These projects format via ESLint,
+  // NOT prettier (prettier is not a dependency), so the fix is to turn
+  // format-on-save OFF rather than pin a formatter that isn't installed.
+  // Lint/format intent is enforced by `pnpm lint` + the husky pre-commit gate,
+  // not by the editor.
+  "editor.formatOnSave": false,
+  "[typescript]": {
+    "editor.formatOnSave": false
+  },
+  "[typescriptreact]": {
+    "editor.formatOnSave": false
+  },
+  "[javascript]": {
+    "editor.formatOnSave": false
+  },
+  "[javascriptreact]": {
+    "editor.formatOnSave": false
+  }
+}

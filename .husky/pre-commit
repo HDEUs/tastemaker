@@ -1,0 +1,12 @@
+# source: HDEUs/fittracker .husky/pre-commit, exported 2026-07 (verbatim)
+# Plaats dit bestand als .husky/pre-commit in het doelproject.
+#
+# Secret scan (local hard gate). Graceful if gitleaks is absent on this
+# machine — CI's gitleaks job is the non-skippable backstop.
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --no-banner --redact --config .gitleaks.toml || exit 1
+else
+  echo "gitleaks not installed — skipping local secret scan (CI will catch)"
+fi
+
+tsc --noEmit && pnpm lint && pnpm grain && pnpm build
