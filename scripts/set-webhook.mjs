@@ -9,9 +9,11 @@ function loadDotEnvLocal() {
     return;
   }
   for (const line of readFileSync(".env.local", "utf8").split("\n")) {
-    const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+    const match = /^(?:export\s+)?([A-Z0-9_]+)=(.*)$/.exec(line.trim());
     if (match && !process.env[match[1]]) {
-      process.env[match[1]] = match[2];
+      // Strip surrounding quotes: a quoted secret would otherwise register
+      // the webhook with literal quote characters and 401 every real call.
+      process.env[match[1]] = match[2].trim().replace(/^(["'])(.*)\1$/, "$2");
     }
   }
 }

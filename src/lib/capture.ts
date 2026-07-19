@@ -35,12 +35,17 @@ function forwardPrefix(msg: TgMessage): string {
 }
 
 export function planCapture(msg: TgMessage): CapturePlan | null {
+  // Forward origin belongs on captions too, not only on plain text.
+  const caption = msg.caption
+    ? `${forwardPrefix(msg)}${msg.caption}`
+    : null;
+
   if (msg.photo && msg.photo.length > 0) {
     // Telegram sorts photo sizes ascending; last one is the largest.
     const largest = msg.photo[msg.photo.length - 1];
     return {
       kind: "screenshot",
-      rawText: msg.caption ?? null,
+      rawText: caption,
       sourceUrl: null,
       fileId: largest.file_id,
       mimeType: "image/jpeg",
@@ -65,7 +70,7 @@ export function planCapture(msg: TgMessage): CapturePlan | null {
   if (video) {
     return {
       kind: "video",
-      rawText: msg.caption ?? null,
+      rawText: caption,
       sourceUrl: null,
       fileId: video.file_id,
       mimeType: video.mime_type ?? "video/mp4",
@@ -84,7 +89,9 @@ export function planCapture(msg: TgMessage): CapturePlan | null {
       return {
         kind: "link",
         rawText: text,
-        sourceUrl: match[0],
+        // Strip trailing punctuation that the greedy regex drags along,
+        // e.g. "(https://x.nl/a)" or "https://x.nl/a."
+        sourceUrl: match[0].replace(/[).,;:!?]+$/, ""),
         fileId: null,
         mimeType: null,
         mediaGroupId: null,
@@ -104,6 +111,19 @@ export function planCapture(msg: TgMessage): CapturePlan | null {
 
   // Stickers, locations, polls, etc.: not capture material.
   return null;
+}
+
+// True when the message carries a media type we deliberately do not store;
+// the route replies instead of silently dropping it.
+export function isUnsupportedMedia(msg: TgMessage): boolean {
+  return Boolean(msg.document ?? msg.audio ?? msg.animation ?? msg.sticker);
+}
+
+export function tooLargeText(plan: CapturePlan): string {
+  if (plan.kind === "voice") {
+    return "Voice note te groot, stuur een kortere opname.";
+  }
+  return "Video te groot, stuur een screenshot + voice note";
 }
 
 // Confirmation copy: Dutch, short, no emoji (hard rule 6).

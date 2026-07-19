@@ -85,20 +85,28 @@ export interface AnalysisInput {
   annotations: string[];
 }
 
+// Hard length cap on prompt input (security-stance): a single forwarded
+// wall of text or runaway transcript must not blow up token spend.
+function cap(text: string, max = 8000): string {
+  return text.length > max ? `${text.slice(0, max)}\n[afgekapt]` : text;
+}
+
 export async function analyzeEntry(input: AnalysisInput): Promise<Analysis> {
   const parts: string[] = [`Entry kind: ${input.kind}`];
   if (input.sourceUrl) {
-    parts.push(`Shared URL (stored, never fetched): ${input.sourceUrl}`);
+    parts.push(`Shared URL (stored, never fetched): ${cap(input.sourceUrl, 500)}`);
   }
   if (input.rawText) {
-    parts.push(`User text/caption:\n${input.rawText}`);
+    parts.push(`User text/caption:\n${cap(input.rawText)}`);
   }
   if (input.transcript) {
-    parts.push(`Transcript:\n${input.transcript}`);
+    parts.push(`Transcript:\n${cap(input.transcript)}`);
   }
   if (input.annotations.length > 0) {
     parts.push(
-      `User annotations on this entry:\n- ${input.annotations.join("\n- ")}`,
+      `User annotations on this entry:\n- ${input.annotations
+        .map((a) => cap(a, 4000))
+        .join("\n- ")}`,
     );
   }
   parts.push(
@@ -164,9 +172,19 @@ export async function synthesizeProfile(entries: Entry[]): Promise<string> {
       },
     ],
   });
+  if (response.stop_reason !== "end_turn") {
+    // Never persist or send a truncated/refused profile.
+    throw new Error(
+      `profile synthesis stopped early: ${response.stop_reason ?? "unknown"}`,
+    );
+  }
   const block = response.content.find((b) => b.type === "text");
   if (!block || block.type !== "text") {
     throw new Error("profile synthesis returned no text block");
   }
-  return block.text.trim();
+  const profile = block.text.trim();
+  if (profile.length === 0) {
+    throw new Error("profile synthesis returned empty text");
+  }
+  return profile;
 }

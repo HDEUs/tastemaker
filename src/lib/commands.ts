@@ -1,16 +1,19 @@
-// Bot commands. /start, /stats en /laatste antwoorden synchroon (snelle
-// selects); /profiel en /analyse sturen eerst een ack en doen het echte werk
-// in waitUntil. Alle teksten Nederlands, kort, geen emoji (hard rule 6).
+// Bot commands. /start, /stats and /laatste answer synchronously (fast
+// selects); /profiel and /analyse send an ack first and do the real work in
+// waitUntil. All user-facing copy is Dutch, short, no emoji (hard rule 6).
 import { synthesizeProfile } from "./claude";
 import { processEntry } from "./analyze";
 import { sendMessage } from "./telegram";
 import {
+  countAnalyzedEntries,
+  getEntry,
   insertProfile,
   listAnalyzedEntries,
   listEntriesForStats,
   listRecentEntries,
   listRetryableEntries,
 } from "./store";
+import type { EntryKind, EntryStatus } from "./db";
 
 const START_TEXT = [
   "Tastebank bewaart wat jij deelt en leert je smaak kennen.",
@@ -25,16 +28,44 @@ const START_TEXT = [
   "/analyse - probeer mislukte analyses opnieuw",
 ].join("\n");
 
+const KIND_NL: Record<EntryKind, string> = {
+  screenshot: "screenshot",
+  text: "tekst",
+  voice: "voice",
+  link: "link",
+  video: "video",
+};
+
+const STATUS_NL: Record<EntryStatus, string> = {
+  captured: "wacht op analyse",
+  analyzed: "geanalyseerd",
+  analysis_failed: "mislukt",
+};
+
+// Media pipelines (download + transcription + analysis) are heavy; keep the
+// retry batch small enough to finish inside the function budget.
+const RETRY_BATCH = 3;
+
 async function statsText(): Promise<string> {
   const rows = await listEntriesForStats();
+  const isNote = (r: (typeof rows)[number]): boolean =>
+    r.annotation_of !== null && !r.analysis;
+  const notes = rows.filter(isNote);
+  const main = rows.filter((r) => !isNote(r));
   const byKind = new Map<string, number>();
   const byLayer = new Map<string, number>();
   const byStatus = new Map<string, number>();
-  for (const row of rows) {
-    byKind.set(row.kind, (byKind.get(row.kind) ?? 0) + 1);
-    byStatus.set(row.status, (byStatus.get(row.status) ?? 0) + 1);
+  for (const row of main) {
+    byKind.set(KIND_NL[row.kind], (byKind.get(KIND_NL[row.kind]) ?? 0) + 1);
+    byStatus.set(
+      STATUS_NL[row.status],
+      (byStatus.get(STATUS_NL[row.status]) ?? 0) + 1,
+    );
     if (row.analysis?.layer) {
-      byLayer.set(row.analysis.layer, (byLayer.get(row.analysis.layer) ?? 0) + 1);
+      byLayer.set(
+        row.analysis.layer,
+        (byLayer.get(row.analysis.layer) ?? 0) + 1,
+      );
     }
   }
   const fmt = (m: Map<string, number>): string =>
@@ -42,7 +73,7 @@ async function statsText(): Promise<string> {
       ? "geen"
       : [...m.entries()].map(([k, n]) => `${k} ${n}`).join(", ");
   return [
-    `Entries: ${rows.length}`,
+    `Entries: ${main.length} (plus ${notes.length} notities)`,
     `Per soort: ${fmt(byKind)}`,
     `Per laag: ${fmt(byLayer)}`,
     `Status: ${fmt(byStatus)}`,
@@ -63,7 +94,7 @@ async function latestText(): Promise<string> {
           : e.status === "analysis_failed"
             ? "(analyse mislukt, /analyse om opnieuw te proberen)"
             : "(analyse loopt nog)");
-      return `${i + 1}. [${e.kind}] ${summary}`;
+      return `${i + 1}. [${KIND_NL[e.kind]}] ${summary}`;
     })
     .join("\n");
 }
@@ -71,13 +102,12 @@ async function latestText(): Promise<string> {
 async function generateProfile(chatId: number): Promise<void> {
   try {
     const entries = await listAnalyzedEntries();
-    const withAnalysis = entries.filter((e) => e.analysis !== null);
-    if (withAnalysis.length === 0) {
+    if (entries.length === 0) {
       await sendMessage(chatId, "Nog geen geanalyseerde entries");
       return;
     }
-    const profileMd = await synthesizeProfile(withAnalysis);
-    await insertProfile(withAnalysis.length, profileMd);
+    const profileMd = await synthesizeProfile(entries);
+    await insertProfile(entries.length, profileMd);
     await sendMessage(chatId, profileMd);
   } catch (err) {
     console.error(
@@ -93,21 +123,35 @@ async function generateProfile(chatId: number): Promise<void> {
 
 async function retryFailed(chatId: number): Promise<void> {
   try {
-    const entries = await listRetryableEntries(10);
+    const entries = await listRetryableEntries(RETRY_BATCH);
+    if (entries.length === 0) {
+      await sendMessage(chatId, "Geen entries om opnieuw te analyseren.");
+      return;
+    }
     for (const entry of entries) {
       await processEntry(entry.id);
     }
-    await sendMessage(
-      chatId,
-      entries.length === 0
-        ? "Geen entries om opnieuw te analyseren."
-        : `Klaar: ${entries.length} entries opnieuw geprobeerd. Check /laatste of /stats.`,
-    );
+    const after = await Promise.all(entries.map((e) => getEntry(e.id)));
+    const succeeded = after.filter((e) => e?.status === "analyzed").length;
+    const remaining = await listRetryableEntries(1);
+    const lines = [
+      `Opnieuw geprobeerd: ${entries.length}, gelukt: ${succeeded}, mislukt: ${
+        entries.length - succeeded
+      }.`,
+    ];
+    if (remaining.length > 0) {
+      lines.push("Er staan er nog meer klaar; stuur /analyse opnieuw.");
+    }
+    await sendMessage(chatId, lines.join("\n"));
   } catch (err) {
     console.error(
       "[analyse] retry run failed:",
       err instanceof Error ? err.message : err,
     );
+    await sendMessage(
+      chatId,
+      "Opnieuw analyseren is mislukt, probeer het later nog eens.",
+    ).catch(() => undefined);
   }
 }
 
@@ -132,8 +176,7 @@ export async function handleCommand(
       await sendMessage(chatId, await latestText());
       return { background: null };
     case "/profiel": {
-      const analyzed = await listAnalyzedEntries();
-      if (analyzed.filter((e) => e.analysis !== null).length === 0) {
+      if ((await countAnalyzedEntries()) === 0) {
         // PRD edge case: zero analyzed entries — answer without calling Claude.
         await sendMessage(chatId, "Nog geen geanalyseerde entries");
         return { background: null };

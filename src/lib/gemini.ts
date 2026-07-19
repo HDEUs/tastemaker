@@ -59,8 +59,14 @@ export async function transcribeViaFilesApi(
     throw new Error("Gemini upload returned no file name");
   }
   let file = uploaded;
-  const deadline = Date.now() + 30_000;
-  while (file.state === "PROCESSING" && Date.now() < deadline) {
+  // Poll until ACTIVE/FAILED: state can also be undefined right after
+  // upload, so loop on "not done" instead of on PROCESSING.
+  const deadline = Date.now() + 60_000;
+  while (
+    file.state !== "ACTIVE" &&
+    file.state !== "FAILED" &&
+    Date.now() < deadline
+  ) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
     file = await ai().files.get({ name });
   }
