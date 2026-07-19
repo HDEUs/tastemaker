@@ -40,9 +40,12 @@ regel hier (hard rule 7).
 - **2026-07-19 — Vitest als devDependency** — contracttests voor de
   webhook-authpaden (401/ignore/dedupe) per testing-strategy; geen
   LLM-output-assertions.
-- **2026-07-19 — Analyse-output via structured outputs (json_schema) + eigen
-  enum-check vóór persist** — "vertrouw geen input, ook niet van de AI";
-  schema dwingt de shape af, de enum-check layer/topic_tags is de tweede laag.
+- **2026-07-19 — Analyse-output via prompt-contract + strikte shape-/enum-
+  validatie vóór persist** — "vertrouw geen input, ook niet van de AI".
+  Structured outputs (json_schema) is niet gegarandeerd beschikbaar op
+  sonnet-4-6, dus de harde afdwinging zit in `validateAnalysis()`
+  (src/lib/claude.ts): elke ontbrekende/lege key of foute layer-waarde =
+  analysis_failed, nooit een halve analyse in de database.
 - **2026-07-19 — `/analyse` herstelt ook stale `captured`-entries (> 10 min)** —
   waitUntil kan door maxDuration afgekapt worden vóór de status op
   analysis_failed staat; anders blijven entries onzichtbaar hangen.

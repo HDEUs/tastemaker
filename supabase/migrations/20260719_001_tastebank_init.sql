@@ -20,6 +20,9 @@ create table if not exists entries (
   -- message_id of the bot's own confirmation reply, so a user reply to that
   -- confirmation can be linked back to this entry (annotation flow)
   confirm_message_id bigint,
+  -- Telegram file_id of the shared media, so /analyse can re-download when
+  -- the original capture run was cut off before the storage upload
+  telegram_file_id text,
   -- Telegram album id; entries 2+ of an album link to the first via
   -- annotation_of
   media_group_id text,
