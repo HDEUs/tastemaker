@@ -1,0 +1,20 @@
+# source: HDEUs/fittracker .gitleaks.toml, exported 2026-07
+# status: generalized — projectnaam + een projectspecifieke rotatie-noot weggelaten.
+# Plaats als .gitleaks.toml in de projectroot. Extends the default ruleset.
+title = "project gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known false positives / public-by-design values"
+# Documentation carries illustrative example values (e.g. example.supabase.co)
+# and discusses secrets by name without containing real ones.
+paths = [
+  '''docs/.*''',
+]
+# Public-by-design keys (bijv. de Supabase ANON key): allowlist een JWT alleen
+# wanneer die op een regel staat die de publieke env-var bij naam noemt.
+regexes = [
+  '''NEXT_PUBLIC_SUPABASE_ANON_KEY''',
+]

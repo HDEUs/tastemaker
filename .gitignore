@@ -1,0 +1,19 @@
+# Dependencies / build
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Env & secrets
+.env*
+!.env.example
+
+# Conventie: scratch niet committen (zie CLAUDE.md)
+tmp/
+CLAUDE.local.md
+docs/solutions/pending-*.md
+
+# OS / editor
+.DS_Store

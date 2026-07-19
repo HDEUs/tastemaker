@@ -1,0 +1,45 @@
+{
+  // source: HDEUs/fittracker tsconfig.json, exported 2026-07
+  // status: verbatim minus projectspecifieke excludes (het "supabase"-exclude
+  // voor Deno Edge Functions is verwijderd). De `@/*`-alias is de standaard
+  // Next.js src-alias en bewust behouden; verwijder 'm als je project geen
+  // src/-map gebruikt.
+  //
+  // Kernkeuzes: strict aan, en daarbovenop noUnusedLocals/noUnusedParameters
+  // zodat dode code al bij tsc --noEmit faalt (eerste poort van de
+  // pre-commit-keten, vóór ESLint).
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
