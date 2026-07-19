@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "Tastemaker",
-  description: "Tastemaker — HDEUs",
+  title: "Tastebank",
+  description: "Tastebank — personal taste capture (HDEUs)",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

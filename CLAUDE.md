@@ -10,11 +10,34 @@ eerste scaffold — TODO-markers staan op die plekken.
 
 ## What
 
-Tastemaker — HDEUs-project in opbouw. Technische basis staat: Next.js 16
-(App Router, `src/`-structuur), TypeScript strict, pnpm. Productcode volgt
-via het PRD (Telegram-capture + Claude-analyse; werktitel "Tastebank").
-<!-- TODO bij de eerste feature-run: productomschrijving definitief maken
-(wat, DB, hosting/deploy-doel) en de naamkeuze vastleggen. -->
+Tastebank (repo: tastemaker) — persoonlijk taste-capture-systeem, single-user
+(Christiaan). Telegram-bot vangt screenshots, teksten, voice notes, links en
+korte video's; Claude destilleert er abstracte principes uit; /profiel bouwt
+een versioned taste profile (later basis voor LinkedIn-generatie, v2). Stack:
+Next.js 16 (App Router, `src/`), TypeScript strict, pnpm, Supabase (Postgres +
+private storage), deploy op Vercel; Anthropic SDK voor analyse, Gemini voor
+transcriptie. GEEN multi-tenant app; simpel houden. Conventiebron:
+HDEUs/claudeconventions (daar aanpassen, dan hierheen syncen).
+
+### Harde regels (Tastebank)
+
+1. Capture faalt nooit door analyse: webhook slaat eerst op, bevestigt < 2 s,
+   analyseert async via waitUntil.
+2. Anti-copy: analyse extraheert alleen abstracte principes; brontekst komt
+   nooit in generatieprompts. De regel leeft in
+   `docs/prompts/analysis-system-prompt.md` en mag niet afgezwakt worden.
+3. Elke Telegram-update dedupen via `telegram_updates` vóór verwerking.
+4. Alleen ALLOWED_CHAT_ID wordt bediend; al het andere stil negeren.
+5. Service-role key blijft server-side; niets client-side importeert `lib/db`.
+6. Bot-replies: Nederlands, kort, geen emoji.
+7. Geen nieuwe dependencies zonder regel in `docs/decisions.md`.
+8. Schemawijzigingen alleen via `supabase/migrations`, nooit dashboard-edits.
+
+### Roadmap-discipline
+
+v1 = capture + analyse + /profiel. Geen generatie, geen Buffer, geen frontend
+vóór 30+ geanalyseerde entries (`docs/roadmap.md`). Scope creep weerstaan,
+ook die van de owner.
 
 ## Commands
 
@@ -22,6 +45,8 @@ via het PRD (Telegram-capture + Claude-analyse; werktitel "Tastebank").
 - `pnpm build` — productie-build; regel die altijd geldt: **build vóór elke commit**
 - `pnpm lint` — ESLint over het hele project
 - `pnpm grain` — slop-pass over `src/` (blokkerende AI-slop-gate)
+- `pnpm test:unit` — Vitest-contracttests (zonder credentials)
+- `pnpm test:ci` — volledige poort: tsc, lint, grain, build, tests
 - `npx tsc --noEmit` — typecheck
 
 De husky pre-commit draait `gitleaks → tsc → lint → grain → build` en is
