@@ -23,6 +23,9 @@ create table if not exists entries (
   -- Telegram file_id of the shared media, so /analyse can re-download when
   -- the original capture run was cut off before the storage upload
   telegram_file_id text,
+  -- Actual mime type as reported by Telegram (webm/mov/mp4/ogg vary);
+  -- transcription and storage contentType read this instead of guessing
+  mime_type text,
   -- Telegram album id; entries 2+ of an album link to the first via
   -- annotation_of
   media_group_id text,
@@ -44,6 +47,13 @@ create index if not exists entries_media_group_idx on entries (media_group_id)
   where media_group_id is not null;
 create index if not exists entries_annotation_of_idx on entries (annotation_of)
   where annotation_of is not null;
+
+-- One album root per media_group: Telegram delivers album photos
+-- near-simultaneously; without this, two concurrent inserts can both decide
+-- they are the root. The second insert hits 23505 and retries as a sibling.
+create unique index if not exists entries_album_root_uidx
+  on entries (media_group_id)
+  where media_group_id is not null and annotation_of is null;
 
 -- 3. Versioned taste profiles (append-only; newest = current).
 create table if not exists taste_profile (

@@ -14,17 +14,12 @@ import {
 } from "./store";
 import type { Entry } from "./db";
 
-function extFor(entry: Entry): string {
-  if (entry.kind === "screenshot") {
-    return "jpg";
-  }
-  if (entry.kind === "voice") {
-    return "ogg";
-  }
-  return "mp4";
-}
-
+// Telegram reports the real mime (webm/mov/mp4/ogg vary); fall back on the
+// kind only when it is missing.
 function mimeFor(entry: Entry): string {
+  if (entry.mime_type) {
+    return entry.mime_type;
+  }
   if (entry.kind === "screenshot") {
     return "image/jpeg";
   }
@@ -34,12 +29,32 @@ function mimeFor(entry: Entry): string {
   return "video/mp4";
 }
 
-async function ensureMedia(entry: Entry): Promise<Uint8Array | null> {
+function extFor(entry: Entry): string {
+  const sub = mimeFor(entry).split("/")[1] ?? "";
+  const known: Record<string, string> = {
+    jpeg: "jpg",
+    ogg: "ogg",
+    mpeg: "mp3",
+    mp4: entry.kind === "voice" ? "m4a" : "mp4",
+    webm: "webm",
+    quicktime: "mov",
+  };
+  return known[sub] ?? (entry.kind === "screenshot" ? "jpg" : "bin");
+}
+
+// Downloads/persists media as needed. needBytes=false skips the (up to
+// 19 MB) fetch when the caller only needs the entry to be durable — but a
+// missing media_path is always repaired, so /analyse can recover captures
+// that were cut off before the upload.
+async function ensureMedia(
+  entry: Entry,
+  needBytes: boolean,
+): Promise<Uint8Array | null> {
   if (entry.kind === "text" || entry.kind === "link") {
     return null;
   }
   if (entry.media_path) {
-    return downloadMedia(entry.media_path);
+    return needBytes ? downloadMedia(entry.media_path) : null;
   }
   if (!entry.telegram_file_id) {
     throw new Error("media entry without telegram_file_id");
@@ -51,6 +66,45 @@ async function ensureMedia(entry: Entry): Promise<Uint8Array | null> {
   return bytes;
 }
 
+// Inline base64 adds ~33%; stay well under Gemini's ~20 MB request cap.
+const INLINE_AUDIO_LIMIT = 10 * 1024 * 1024;
+
+async function transcribe(entry: Entry, bytes: Uint8Array): Promise<string> {
+  const useFilesApi =
+    entry.kind === "video" || bytes.byteLength > INLINE_AUDIO_LIMIT;
+  return useFilesApi
+    ? transcribeViaFilesApi(bytes, mimeFor(entry))
+    : transcribeInline(bytes, mimeFor(entry));
+}
+
+// P1-fix: absorbed voice annotations are never analyzed standalone, but
+// their AUDIO CONTENT must reach the parent's re-analysis. This runs the
+// media+transcription half of the pipeline without the analysis half.
+export async function transcribeAnnotation(entryId: string): Promise<void> {
+  try {
+    const entry = await getEntry(entryId);
+    if (!entry || entry.kind !== "voice" || entry.transcript) {
+      return;
+    }
+    const bytes = await ensureMedia(entry, true);
+    if (!bytes) {
+      throw new Error("no media bytes for annotation transcription");
+    }
+    const transcript = await transcribe(entry, bytes);
+    if (!transcript) {
+      console.error(`[analyze] empty annotation transcript, entry=${entryId}`);
+      return;
+    }
+    await updateEntry(entryId, { transcript });
+  } catch (err) {
+    // The parent re-analysis still runs, just without this note's content.
+    console.error(
+      `[analyze] annotation transcription failed, entry=${entryId}:`,
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
+
 export async function processEntry(entryId: string): Promise<void> {
   let stage = "load";
   try {
@@ -60,7 +114,11 @@ export async function processEntry(entryId: string): Promise<void> {
     }
 
     stage = "media";
-    const bytes = await ensureMedia(entry);
+    const needBytes =
+      entry.kind === "screenshot" ||
+      ((entry.kind === "voice" || entry.kind === "video") &&
+        !entry.transcript);
+    const bytes = await ensureMedia(entry, needBytes);
 
     stage = "transcribe";
     let transcript = entry.transcript;
@@ -68,10 +126,7 @@ export async function processEntry(entryId: string): Promise<void> {
       if (!bytes) {
         throw new Error("no media bytes for transcription");
       }
-      transcript =
-        entry.kind === "voice"
-          ? await transcribeInline(bytes, mimeFor(entry))
-          : await transcribeViaFilesApi(bytes, mimeFor(entry));
+      transcript = await transcribe(entry, bytes);
       if (!transcript) {
         // Empty transcript: keep the entry, mark failed (PRD edge case).
         await updateEntry(entry.id, { status: "analysis_failed" });

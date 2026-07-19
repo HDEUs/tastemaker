@@ -1,7 +1,8 @@
 // SERVER-ONLY: Supabase client on the service role key. RLS has no policies,
-// so this client is the single data consumer (docs/architecture.md). Never
-// import this module (or anything that imports it) from client components —
-// nothing under src/app may reach it except API route handlers.
+// so this client is the single data consumer (docs/architecture.md). The
+// server-only import makes a client-component import a build error instead
+// of a convention (hard rule 5).
+import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "./env";
 
@@ -25,6 +26,7 @@ export interface Entry {
   telegram_message_id: number | null;
   confirm_message_id: number | null;
   telegram_file_id: string | null;
+  mime_type: string | null;
   media_group_id: string | null;
   kind: EntryKind;
   raw_text: string | null;
