@@ -157,3 +157,13 @@ WP1 → WP2 → WP3 → WP4+5 (samenhangend, 2-3 commits) → WP6 → WP7; elke 
     server-code; reviewfase grep-t dat af.
 12. **Tests zonder creds** — lazy `getEnv()`/lazy db-client + `vi.mock`,
     geen netwerk in tests.
+
+## Afwijkingen tijdens bouw en review (gedocumenteerd)
+
+- Beslissing (h) structured outputs → uitgevoerd als prompt-contract +
+  `validateAnalysis()` (structured outputs niet gegarandeerd op sonnet-4-6);
+  zie docs/decisions.md.
+- `maxDuration` 60 → 300 (Fluid compute) na review-finding dat de
+  video+parent-keten niet betrouwbaar in 60 s past; ack blijft < 2 s.
+- Review-fase leverde 2 P1's (voice-annotatie-transcriptie; dedupe-
+  compensatie) — beide gefixt; zie tmp/review-tastebank-v1.md.

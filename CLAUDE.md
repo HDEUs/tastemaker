@@ -45,6 +45,8 @@ ook die van de owner.
 - `pnpm build` — productie-build; regel die altijd geldt: **build vóór elke commit**
 - `pnpm lint` — ESLint over het hele project
 - `pnpm grain` — slop-pass over `src/` (blokkerende AI-slop-gate)
+- `pnpm test:unit` — Vitest-contracttests (zonder credentials)
+- `pnpm test:ci` — volledige poort: tsc, lint, grain, build, tests
 - `npx tsc --noEmit` — typecheck
 
 De husky pre-commit draait `gitleaks → tsc → lint → grain → build` en is

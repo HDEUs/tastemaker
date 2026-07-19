@@ -34,9 +34,22 @@ regel hier (hard rule 7).
 - **2026-07-19 — Schema-aanvulling `media_group_id` + `confirm_message_id`
   op `entries`** — album-linking en reply-op-botbevestiging zijn zonder deze
   kolommen niet implementeerbaar; PRD-gaten gedicht.
-- **2026-07-19 — Dedupe als atomaire INSERT met ON CONFLICT DO NOTHING** —
+- **2026-07-19 — Dedupe als atomaire PK-insert met 23505-afvang** —
   select-dan-insert heeft een TOCTOU-window; Telegram-retries komen vrijwel
-  gelijktijdig binnen (review-checklist punt 8).
+  gelijktijdig binnen (review-checklist punt 8). Faalt de capture ná de
+  dedupe-insert, dan wordt die insert gecompenseerd verwijderd zodat de
+  Telegram-retry niet ingeslikt wordt (review-finding P1-2).
+- **2026-07-19 — `@anthropic-ai/sdk`, `@supabase/supabase-js` en
+  `@vercel/functions` als dependencies** — respectievelijk de officiële
+  Claude-SDK (analyse/synthese), de enige datalaag-client (service-role) en
+  de `waitUntil`-bron voor werk ná de webhook-response op Vercel.
+- **2026-07-19 — `server-only` als dependency** — maakt een client-side
+  import van `src/lib/db.ts` een build-fout i.p.v. een conventie (harde
+  regel 5).
+- **2026-07-19 — `maxDuration = 300` i.p.v. 60 uit het PRD** — de
+  video-pipeline (download tot 19 MB + Gemini Files-poll + Claude) plus een
+  parent-heranalyse past niet betrouwbaar in 60 s (waitUntil telt mee);
+  Vercel Fluid compute staat 300 s toe. De 2-seconden-ack blijft ongewijzigd.
 - **2026-07-19 — Vitest als devDependency** — contracttests voor de
   webhook-authpaden (401/ignore/dedupe) per testing-strategy; geen
   LLM-output-assertions.

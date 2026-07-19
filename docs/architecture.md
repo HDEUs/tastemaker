@@ -10,11 +10,12 @@ Gemini voor audio-transcriptie.
 Telefoon (Telegram share)
    │  bericht/foto/voice/link/video
    ▼
-Telegram Bot API ──webhook──▶ app/api/telegram/route.ts   (maxDuration 60)
-   1. secret-header check (401 bij mismatch)
+Telegram Bot API ──webhook──▶ app/api/telegram/route.ts   (maxDuration 300)
+   1. secret-header check (timing-safe; 401 bij mismatch)
    2. alleen ALLOWED_CHAT_ID (rest: stil 200)
-   3. command? → /start /stats /laatste sync; /profiel /analyse async
-   4. dedupe: INSERT update_id in telegram_updates (ON CONFLICT → stop)
+   3. dedupe: atomaire PK-insert in telegram_updates (dubbel → stop;
+      faalt de capture hierna, dan wordt de dedupe-rij teruggedraaid)
+   4. command? → /start /stats /laatste sync; /profiel /analyse async
    5. entry-rij opslaan (status 'captured') + annotatie-linking
    6. bevestiging < 2 s (bot-message_id → entries.confirm_message_id)
    7. waitUntil(processEntry):
