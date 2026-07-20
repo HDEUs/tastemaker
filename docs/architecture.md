@@ -21,6 +21,7 @@ Telegram Bot API ──webhook──▶ app/api/telegram/route.ts   (maxDuration
    7. waitUntil(processEntry):
         media: getFile → download → Storage-bucket "media" → media_path
         voice/video: Gemini-transcriptie (video via Files API) → transcript
+        YouTube-link: Gemini bekijkt de URL native → beschrijving → transcript
         Claude-analyse (vision of tekst; annotaties mee) → entries.analysis
         falen: status 'analysis_failed' (herstel via /analyse)
    ▼

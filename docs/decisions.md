@@ -19,6 +19,15 @@ regel hier (hard rule 7).
   geverifieerd als actueel model-ID; centrale `getModel()` in
   `src/lib/claude.ts` zodat een latere swap (bijv. claude-sonnet-5, nu met
   introductieprijs goedkoper) een one-liner is.
+- **2026-07-19 — YouTube-links laat Gemini bekijken (alleen YouTube)** —
+  een kale link levert een dunne analyse; Gemini ondersteunt native het
+  bekijken van publieke YouTube-URL's, dus een gedeelde Short/video wordt
+  volwaardig geanalyseerd (hook, structuur, transcript). Bewust géén
+  uitbreiding naar LinkedIn/Instagram/TikTok: die blijven alleen-opslaan
+  (PRD). Dit is GEEN scraping — we halen de pagina nooit zelf op, we geven
+  de URL door aan Google's API; geen SSRF-oppervlak. Faalt Gemini (privé/
+  verwijderd), dan valt de analyse terug op de kale link i.p.v. te blijven
+  hangen.
 - **2026-07-19 — Geen video-download boven 19 MB** — Telegram Bot API
   getFile-limiet is 20 MB; marge van 1 MB; gebruiker krijgt NL-instructie
   (screenshot + voice note).
