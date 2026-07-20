@@ -10,10 +10,11 @@ import {
   insertProfile,
   listAnalyzedEntries,
   listEntriesForStats,
+  listIdeas,
   listRecentEntries,
   listRetryableEntries,
 } from "./store";
-import type { EntryKind, EntryStatus } from "./db";
+import type { EntryKind, EntryStatus, IdeaTarget } from "./db";
 
 const START_TEXT = [
   "Tastebank bewaart wat jij deelt en leert je smaak kennen.",
@@ -24,6 +25,7 @@ const START_TEXT = [
   "",
   "/stats - aantallen per soort en laag",
   "/laatste - laatste 5 entries",
+  "/ideeen - je eigen ideeën (filter: /ideeen linkedin of /ideeen conudge)",
   "/profiel - genereer je taste profile",
   "/analyse - probeer mislukte analyses opnieuw",
 ].join("\n");
@@ -68,6 +70,13 @@ async function statsText(): Promise<string> {
       );
     }
   }
+  const byIdea = new Map<string, number>();
+  for (const row of main) {
+    if (row.analysis?.entry_type === "own_idea") {
+      const target = row.analysis.idea_target ?? "other";
+      byIdea.set(target, (byIdea.get(target) ?? 0) + 1);
+    }
+  }
   const fmt = (m: Map<string, number>): string =>
     m.size === 0
       ? "geen"
@@ -76,8 +85,40 @@ async function statsText(): Promise<string> {
     `Entries: ${main.length} (plus ${notes.length} notities)`,
     `Per soort: ${fmt(byKind)}`,
     `Per laag: ${fmt(byLayer)}`,
+    `Eigen ideeën: ${fmt(byIdea)}`,
     `Status: ${fmt(byStatus)}`,
   ].join("\n");
+}
+
+const IDEA_TARGETS: Record<string, IdeaTarget> = {
+  linkedin: "linkedin",
+  conudge: "conudge",
+  other: "other",
+  overig: "other",
+};
+
+async function ideasText(rawTarget: string | undefined): Promise<string> {
+  let target: IdeaTarget | null = null;
+  if (rawTarget) {
+    const mapped = IDEA_TARGETS[rawTarget.toLowerCase()];
+    if (!mapped) {
+      return "Onbekend filter. Gebruik /ideeen, /ideeen linkedin, /ideeen conudge of /ideeen overig.";
+    }
+    target = mapped;
+  }
+  const ideas = await listIdeas(target, 15);
+  if (ideas.length === 0) {
+    return target
+      ? `Nog geen ideeën met label ${target}.`
+      : "Nog geen eigen ideeën vastgelegd. Spreek of typ je ingeving naar de bot, met erbij voor wie het is (LinkedIn of Conudge).";
+  }
+  return ideas
+    .map((e, i) => {
+      const label = e.analysis?.idea_target ?? "other";
+      const summary = e.analysis?.one_line_summary ?? "(geen samenvatting)";
+      return `${i + 1}. [${label}] ${summary}`;
+    })
+    .join("\n");
 }
 
 async function latestText(): Promise<string> {
@@ -175,6 +216,11 @@ export async function handleCommand(
     case "/laatste":
       await sendMessage(chatId, await latestText());
       return { background: null };
+    case "/ideeen": {
+      const arg = command.trim().split(/\s+/)[1];
+      await sendMessage(chatId, await ideasText(arg));
+      return { background: null };
+    }
     case "/profiel": {
       if ((await countAnalyzedEntries()) === 0) {
         // PRD edge case: zero analyzed entries — answer without calling Claude.

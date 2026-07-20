@@ -64,6 +64,7 @@ omgeving of `.env.local` en registreert `/api/telegram` met het secret.
 | `/start` | Korte uitleg |
 | `/stats` | Aantallen per soort, laag en status |
 | `/laatste` | Laatste 5 entries met samenvatting |
+| `/ideeen` | Je eigen ideeën; filter met `/ideeen linkedin` of `/ideeen conudge` |
 | `/profiel` | Genereert en stuurt je taste profile (versioned opgeslagen) |
 | `/analyse` | Herprobeert mislukte en blijven-hangen analyses |
 

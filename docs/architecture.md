@@ -57,6 +57,8 @@ Het systeem-prompt leeft in `docs/prompts/analysis-system-prompt.md` (geladen
 at runtime via fs-read + Vercel file tracing; NIET gedupliceerd in code).
 Output is afgedwongen JSON: `format_type`, `hook_style`, `tone`,
 `topic_tags[]`, `why_it_works`, `layer` (`form_inspiration` |
-`topic_relevant`), `one_line_summary` — abstracte principes, nooit
-overneembare tekst. De anti-copy-regel in dat bestand mag niet afgezwakt
-worden.
+`topic_relevant`), `entry_type` (`own_idea` | `external_content`),
+`idea_target` (`linkedin` | `conudge` | `other`, alleen bij own_idea),
+`one_line_summary` — abstracte principes, nooit overneembare tekst. De
+anti-copy-regel in dat bestand mag niet afgezwakt worden. Eigen ideeën zijn
+opvraagbaar via /ideeen (optioneel gefilterd op target).
