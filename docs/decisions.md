@@ -59,6 +59,12 @@ regel hier (hard rule 7).
   sonnet-4-6, dus de harde afdwinging zit in `validateAnalysis()`
   (src/lib/claude.ts): elke ontbrekende/lege key of foute layer-waarde =
   analysis_failed, nooit een halve analyse in de database.
+- **2026-07-19 — Ideeën-laag naar voren gehaald (owner-besluit, issue #6)** —
+  analyse labelt elke entry als `own_idea` of `external_content`, eigen
+  ideeën krijgen `idea_target` (linkedin/conudge/other) en zijn opvraagbaar
+  via /ideeen. Scope-toets: dit is capture+analyse (v1-kern), géén
+  generatie — de 30+-entriespoort blijft gelden voor v2 (generatie, Buffer,
+  frontend). Bestaande entries worden retroactief gelabeld via her-analyse.
 - **2026-07-19 — `/analyse` herstelt ook stale `captured`-entries (> 10 min)** —
   waitUntil kan door maxDuration afgekapt worden vóór de status op
   analysis_failed staat; anders blijven entries onzichtbaar hangen.

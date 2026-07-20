@@ -38,6 +38,20 @@ Return a single JSON object with exactly these fields:
   - `"form_inspiration"` — the user liked the craft/structure even if the
     topic is unrelated to their B2B marketing/AI positioning;
   - `"topic_relevant"` — the subject itself fits their positioning.
+- `entry_type` — exactly one of:
+  - `"external_content"` — someone else's content the user captured to
+    study (posts, screenshots of others' work);
+  - `"own_idea"` — the user's own idea, observation or plan for something
+    they might make themselves: spoken or written ingevingen ("idee:",
+    "dit is vet voor een filmpje"), a photo of a moment they want to turn
+    into content, a product thought.
+- `idea_target` — only meaningful for `"own_idea"`; exactly one of:
+  - `"linkedin"` — a content idea for the user's personal LinkedIn presence;
+  - `"conudge"` — an idea for Conudge, the user's product/company;
+  - `"other"` — an own idea without a clear target.
+  For `"external_content"` always use `null`. Listen for explicit cues in
+  the text or annotations ("voor Conudge", "LinkedIn-idee"); without a clear
+  cue, judge from context and prefer `"other"` when unsure.
 - `one_line_summary` — one neutral sentence describing what this entry is,
   in Dutch (shown in the /laatste command), without quoting the source.
 

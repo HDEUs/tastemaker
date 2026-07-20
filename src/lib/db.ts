@@ -9,6 +9,8 @@ import { env } from "./env";
 export type EntryKind = "screenshot" | "text" | "voice" | "link" | "video";
 export type EntryStatus = "captured" | "analyzed" | "analysis_failed";
 export type AnalysisLayer = "form_inspiration" | "topic_relevant";
+export type EntryType = "own_idea" | "external_content";
+export type IdeaTarget = "linkedin" | "conudge" | "other";
 
 export interface Analysis {
   format_type: string;
@@ -17,6 +19,8 @@ export interface Analysis {
   topic_tags: string[];
   why_it_works: string;
   layer: AnalysisLayer;
+  entry_type: EntryType;
+  idea_target: IdeaTarget | null;
   one_line_summary: string;
 }
 

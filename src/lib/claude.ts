@@ -57,6 +57,17 @@ export function validateAnalysis(value: unknown): Analysis {
   if (layer !== "form_inspiration" && layer !== "topic_relevant") {
     throw new Error(`analysis.layer has invalid value: ${layer}`);
   }
+  const entryType = str("entry_type");
+  if (entryType !== "own_idea" && entryType !== "external_content") {
+    throw new Error(`analysis.entry_type has invalid value: ${entryType}`);
+  }
+  // Normalize rather than fail: external content never carries a target,
+  // and an own idea without a recognizable target becomes "other".
+  let ideaTarget: "linkedin" | "conudge" | "other" | null = null;
+  if (entryType === "own_idea") {
+    const t = v.idea_target;
+    ideaTarget = t === "linkedin" || t === "conudge" ? t : "other";
+  }
   return {
     format_type: str("format_type"),
     hook_style: str("hook_style"),
@@ -64,6 +75,8 @@ export function validateAnalysis(value: unknown): Analysis {
     topic_tags: tags as string[],
     why_it_works: str("why_it_works"),
     layer,
+    entry_type: entryType,
+    idea_target: ideaTarget,
     one_line_summary: str("one_line_summary"),
   };
 }

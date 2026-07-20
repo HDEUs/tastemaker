@@ -260,6 +260,28 @@ export async function listRecentEntries(limit: number): Promise<Entry[]> {
   return (data ?? []) as Entry[];
 }
 
+// Own ideas, newest first, optionally filtered on target (jsonb path
+// filters on the validated analysis shape).
+export async function listIdeas(
+  target: "linkedin" | "conudge" | "other" | null,
+  limit: number,
+): Promise<Entry[]> {
+  let query = db()
+    .from("entries")
+    .select("*")
+    .eq("analysis->>entry_type", "own_idea");
+  if (target) {
+    query = query.eq("analysis->>idea_target", target);
+  }
+  const { data, error } = await query
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) {
+    throw new Error(`listIdeas failed: ${error.message}`);
+  }
+  return (data ?? []) as Entry[];
+}
+
 export async function listAnalyzedEntries(): Promise<Entry[]> {
   const { data, error } = await db()
     .from("entries")
