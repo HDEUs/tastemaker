@@ -18,6 +18,13 @@ export interface CapturePlan {
 
 const URL_RE = /https?:\/\/\S+/i;
 
+// youtube.com/watch, /shorts/, /live/, youtu.be/, incl. www. and m. subdomains.
+export function isYoutubeUrl(url: string): boolean {
+  return /^https?:\/\/(www\.|m\.)?(youtube\.com\/(watch\?|shorts\/|live\/)|youtu\.be\/)/i.test(
+    url,
+  );
+}
+
 function forwardPrefix(msg: TgMessage): string {
   const origin = msg.forward_origin;
   if (!origin) {
@@ -82,16 +89,19 @@ export function planCapture(msg: TgMessage): CapturePlan | null {
   if (msg.text && msg.text.trim().length > 0) {
     const text = `${forwardPrefix(msg)}${msg.text.trim()}`;
     const match = URL_RE.exec(msg.text);
+    // Strip trailing punctuation the greedy regex drags along, e.g.
+    // "(https://x.nl/a)" or "https://x.nl/a."
+    const url = match ? match[0].replace(/[).,;:!?]+$/, "") : null;
     // "Primarily a URL": the message is the URL plus at most a few words.
     const isPrimarilyUrl =
       match !== null && msg.text.trim().length - match[0].length < 20;
-    if (isPrimarilyUrl && match) {
+    // A YouTube link is always captured as a link (even with a caption), so
+    // the analysis pipeline can hand the URL to Gemini to watch.
+    if (url && (isPrimarilyUrl || isYoutubeUrl(url))) {
       return {
         kind: "link",
         rawText: text,
-        // Strip trailing punctuation that the greedy regex drags along,
-        // e.g. "(https://x.nl/a)" or "https://x.nl/a."
-        sourceUrl: match[0].replace(/[).,;:!?]+$/, ""),
+        sourceUrl: url,
         fileId: null,
         mimeType: null,
         mediaGroupId: null,

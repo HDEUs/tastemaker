@@ -17,6 +17,28 @@ const TRANSCRIBE_PROMPT =
   "Transcribe the spoken audio verbatim. Output only the transcript text, " +
   "no commentary, no timestamps. The speaker is Dutch and may mix in English.";
 
+const YOUTUBE_PROMPT =
+  "Describe this video so its craft can be analyzed. Cover: the hook (how " +
+  "the first seconds grab attention), the structure and pacing, the visual " +
+  "style, and the spoken content (transcribe the key lines). Be concise and " +
+  "factual, plain text, no markdown.";
+
+// Gemini ingests public YouTube URLs natively (server-side) — we never fetch
+// or scrape the page ourselves, so there is no SSRF surface. Scoped to
+// YouTube only (see docs/decisions.md).
+export async function describeYoutubeVideo(url: string): Promise<string> {
+  const res = await ai().models.generateContent({
+    model: GEMINI_MODEL,
+    contents: [
+      {
+        role: "user",
+        parts: [{ fileData: { fileUri: url } }, { text: YOUTUBE_PROMPT }],
+      },
+    ],
+  });
+  return res.text?.trim() ?? "";
+}
+
 export async function transcribeInline(
   bytes: Uint8Array,
   mimeType: string,

@@ -3,7 +3,12 @@
 // error here ends as status 'analysis_failed' plus a server log, never as a
 // thrown error towards the webhook response. Recovery: /analyse.
 import { analyzeEntry } from "./claude";
-import { transcribeInline, transcribeViaFilesApi } from "./gemini";
+import { isYoutubeUrl } from "./capture";
+import {
+  describeYoutubeVideo,
+  transcribeInline,
+  transcribeViaFilesApi,
+} from "./gemini";
 import { downloadTelegramFile } from "./telegram";
 import {
   downloadMedia,
@@ -136,6 +141,30 @@ export async function processEntry(entryId: string): Promise<void> {
         return;
       }
       await updateEntry(entry.id, { transcript });
+    }
+
+    // YouTube link: let Gemini watch the video and use its description as the
+    // transcript. A failure here is non-fatal — we still analyze the bare
+    // link (a private/removed video should not get stuck failed).
+    if (
+      !transcript &&
+      entry.kind === "link" &&
+      entry.source_url &&
+      isYoutubeUrl(entry.source_url)
+    ) {
+      stage = "youtube";
+      try {
+        const desc = await describeYoutubeVideo(entry.source_url);
+        if (desc) {
+          transcript = desc;
+          await updateEntry(entry.id, { transcript });
+        }
+      } catch (err) {
+        console.error(
+          `[analyze] youtube describe failed, entry=${entry.id}:`,
+          err instanceof Error ? err.message : err,
+        );
+      }
     }
 
     stage = "analyze";

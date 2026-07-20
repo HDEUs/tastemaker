@@ -1,7 +1,8 @@
 # Tastebank (repo: tastemaker)
 
 Persoonlijk taste-capture-systeem. Deel screenshots, teksten, voice notes,
-links en korte video's met een prive Telegram-bot; alles wordt opgeslagen in
+links, korte video's en YouTube-links (ook Shorts, door Gemini bekeken) met
+een prive Telegram-bot; alles wordt opgeslagen in
 Supabase, geanalyseerd met Claude (abstracte principes, nooit kopieerbare
 tekst) en samengevat in een levend taste profile via /profiel.
 
