@@ -17,3 +17,6 @@ docs/solutions/pending-*.md
 
 # OS / editor
 .DS_Store
+
+# Vercel CLI-koppeling (lokale projectlink, bevat IDs)
+.vercel
